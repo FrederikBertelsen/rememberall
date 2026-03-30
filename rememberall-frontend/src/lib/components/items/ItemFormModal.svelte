@@ -12,11 +12,18 @@
 
 	let { show = $bindable(false), listId, isLoading = false, onAdd }: Props = $props();
 
+	let itemFormRef = $state<any>(null);
+
 	let viewportState = createViewportState();
 	let modalTopPercent = $derived(calculateModalPosition(viewportState, 300).topPercent);
 
 	function closeModal(): void {
 		show = false;
+	}
+
+	async function handleDone(): Promise<void> {
+		await itemFormRef?.addCurrentText();
+		closeModal();
 	}
 </script>
 
@@ -58,11 +65,11 @@
 				</button>
 			</div>
 
-			<ItemForm {listId} {isLoading} autoFocus={show} {onAdd} />
+			<ItemForm bind:this={itemFormRef} {listId} {isLoading} autoFocus={show} {onAdd} />
 
 			<button
 				type="button"
-				onclick={closeModal}
+				onclick={handleDone}
 				disabled={isLoading}
 				class="btn btn-secondary w-full"
 			>

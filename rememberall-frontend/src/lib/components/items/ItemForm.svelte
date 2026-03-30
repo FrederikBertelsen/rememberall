@@ -85,32 +85,65 @@
 		try {
 			const trimmedText = text.trim().toLowerCase();
 
-			if (onAdd) {
-				// Delegate to parent (edit mode) — parent decides what to do
-				onAdd(trimmedText);
-			} else {
-				// If a completed item was selected, mark it incomplete instead of creating new
-				if (selectedSuggestion && selectedSuggestion.isCompleted) {
-					await itemsStore.incompleteItem(selectedSuggestion.id, listId);
-				} else {
-					// Check if an item with this exact text already exists
-					const existingItem = allItems.find((item) => item.text.toLowerCase() === trimmedText);
-
-					if (existingItem && existingItem.isCompleted) {
-						// Reuse the completed item by marking it incomplete
-						await itemsStore.incompleteItem(existingItem.id, listId);
-					} else if (!existingItem) {
-						await itemsStore.createItem({ todoListId: listId, text: trimmedText });
-					}
-					// If existingItem exists and is not completed, do nothing (already on the list)
-				}
-			}
+			await performAdd(trimmedText);
 
 			// Clear form but keep modal open
 			text = '';
 			selectedSuggestion = null;
 			showSuggestions = true;
 			// Refocus input for next item
+			inputRef?.focus();
+		} catch (err) {
+			error = err instanceof Error ? err.message : tSync($languageTag, 'form.addItemFailed');
+		}
+	}
+
+	/**
+	 * Core add logic extracted so it can be reused by imperative callers.
+	 * Does NOT perform empty/length validation — caller is responsible for that.
+	 */
+	async function performAdd(trimmedText: string): Promise<void> {
+		if (onAdd) {
+			// Delegate to parent (edit mode) — parent decides what to do
+			onAdd(trimmedText);
+		} else {
+			// If a completed item was selected, mark it incomplete instead of creating new
+			if (selectedSuggestion && selectedSuggestion.isCompleted) {
+				await itemsStore.incompleteItem(selectedSuggestion.id, listId);
+			} else {
+				// Check if an item with this exact text already exists
+				const existingItem = allItems.find((item) => item.text.toLowerCase() === trimmedText);
+
+				if (existingItem && existingItem.isCompleted) {
+					// Reuse the completed item by marking it incomplete
+					await itemsStore.incompleteItem(existingItem.id, listId);
+				} else if (!existingItem) {
+					await itemsStore.createItem({ todoListId: listId, text: trimmedText });
+				}
+				// If existingItem exists and is not completed, do nothing (already on the list)
+			}
+		}
+	}
+
+	/**
+	 * Imperative method for parent components (e.g. modal 'Done') to add current input text.
+	 * - Trims current `text`, no-ops if empty after trim.
+	 * - Skips max-length validation (per spec) but otherwise uses same add logic.
+	 * - Clears input on success.
+	 */
+	export async function addCurrentText(): Promise<void> {
+		error = null;
+		const trimmed = text.trim();
+		if (!trimmed) return; // no-op when empty after trim
+
+		try {
+			const trimmedLower = trimmed.toLowerCase();
+			await performAdd(trimmedLower);
+
+			// Clear form but keep modal open
+			text = '';
+			selectedSuggestion = null;
+			showSuggestions = true;
 			inputRef?.focus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : tSync($languageTag, 'form.addItemFailed');
