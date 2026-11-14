@@ -4,7 +4,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install pnpm globally first
-RUN npm install -g pnpm@latest
+RUN npm install -g pnpm@12.18.0
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -24,7 +24,7 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 
 # Install pnpm globally
-RUN npm install -g pnpm@latest
+RUN npm install -g pnpm@12.18.0
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
